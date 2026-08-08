@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CAP Board — Good &amp; Fast Packaging | LRQA Technical Support Visit</title>
+<meta name="description" content="Live corrective action plan progress for the LRQA fire, electrical and structural technical support visit at Good &amp; Fast Packaging Co., Ltd.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<!-- ============================================ title block -->
+<header class="titleblock">
+  <div class="tb-inner">
+    <div class="tb-main">
+      <p class="tb-eyebrow">Corrective Action Plan · Live Board</p>
+      <h1 class="tb-title">LRQA Technical Support Visit — Fire, Electrical &amp; Structural</h1>
+      <p class="tb-sub" id="tbFactory"></p>
+    </div>
+    <dl class="tb-fields">
+      <div class="tb-field"><dt>Report ref</dt><dd id="tbRef">—</dd></div>
+      <div class="tb-field"><dt>Factory ID</dt><dd id="tbFid">—</dd></div>
+      <div class="tb-field"><dt>Assessed</dt><dd id="tbDates">—</dd></div>
+      <div class="tb-field"><dt>Findings</dt><dd id="tbCount">—</dd></div>
+      <div class="tb-field"><dt>Closed</dt><dd id="tbClosed">—</dd></div>
+      <div class="tb-field"><dt>Updated</dt><dd id="tbUpdated">—</dd></div>
+    </dl>
+  </div>
+</header>
+
+<!-- ============================================ nav -->
+<nav class="nav" aria-label="Board sections">
+  <div class="nav-inner" role="tablist">
+    <button class="tab" role="tab" data-view="overview" aria-selected="true">Overview</button>
+    <button class="tab" role="tab" data-view="register">Register <span class="cnt" id="navRegCnt"></span></button>
+    <button class="tab" role="tab" data-view="gates">CAP Gates</button>
+    <button class="tab" role="tab" data-view="orsvai">ORSVAI</button>
+    <button class="tab" role="tab" data-view="evidence">Evidence Pack <span class="cnt">19</span></button>
+    <button class="tab" role="tab" data-view="roadmap">Roadmap</button>
+    <button class="tab" role="tab" data-view="codes">Code Library <span class="cnt">28</span></button>
+    <button class="tab" role="tab" data-view="reports">Reports</button>
+    <span class="nav-spacer"></span>
+    <button class="syncdot local" id="syncBtn" title="Where progress is being saved"><i></i><span id="syncTxt">Local</span></button>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ============================================ OVERVIEW -->
+<section class="view active" id="view-overview" role="tabpanel">
+  <dl class="grid g4" style="margin-bottom:16px" id="kpis"></dl>
+
+  <div class="grid g21" style="margin-bottom:16px">
+    <!-- signature -->
+    <div class="card">
+      <div class="card-h">
+        <h3>All 101 non-conformities</h3>
+        <span class="note">One cell per finding, grouped by area. Colour is severity; a cell fills green as its ten gates clear. Click any cell to open it.</span>
+      </div>
+      <div class="card-b">
+        <div id="sheetGrid" class="sheetgrid"></div>
+        <div class="legend">
+          <span><i class="li-h"></i>High</span>
+          <span><i class="li-m"></i>Medium</span>
+          <span><i class="li-l"></i>Low</span>
+          <span><i class="li-d"></i>Closed &amp; verified</span>
+          <span><i class="li-o"></i>Past target date</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="card-h"><h3>Closure progress</h3></div>
+        <div class="card-b">
+          <div class="ring-wrap">
+            <figure class="ring" id="ring"></figure>
+            <div class="ring-stats" id="ringStats"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="flex:1">
+        <div class="card-h"><h3>Needs attention now</h3><span class="note">Overdue or due within 14 days</span></div>
+        <div class="card-b" id="attention" style="padding:8px 16px 16px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid g3">
+    <div class="card">
+      <div class="card-h"><h3>By assessment area</h3><span class="note">Severity split</span></div>
+      <div class="card-b" id="chartArea"></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>By delivery wave</h3><span class="note">Closed vs open</span></div>
+      <div class="card-b" id="chartWave"></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Root-cause themes</h3><span class="note">Where the work concentrates</span></div>
+      <div class="card-b" id="chartTheme"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ REGISTER -->
+<section class="view" id="view-register" role="tabpanel">
+  <div class="toolbar">
+    <div class="field"><input type="search" id="q" placeholder="Search ID, requirement, observation, code…" aria-label="Search findings"></div>
+    <select id="fArea" aria-label="Filter by area"><option value="">All areas</option></select>
+    <select id="fSev" aria-label="Filter by severity"><option value="">All severities</option></select>
+    <select id="fWave" aria-label="Filter by wave"><option value="">All waves</option></select>
+    <select id="fStatus" aria-label="Filter by status"><option value="">All statuses</option></select>
+    <select id="fTheme" aria-label="Filter by theme"><option value="">All themes</option></select>
+    <button class="chip" id="fOverdue" aria-pressed="false">Overdue only</button>
+    <button class="btn ghost sm" id="clearF">Clear filters</button>
+    <span class="count-note" id="regCount"></span>
+  </div>
+  <div class="tablewrap">
+    <table id="regTable">
+      <thead><tr>
+        <th>ID</th><th>Area</th><th>Requirement</th><th>Sev</th>
+        <th>Code reference</th><th>Target</th><th>Gates</th><th>Status</th><th>Owner</th>
+      </tr></thead>
+      <tbody id="regBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================================ GATES -->
+<section class="view" id="view-gates" role="tabpanel">
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-h"><h3>The ten-gate CAP development model</h3>
+      <span class="note">A finding is ready for submission only when every applicable gate is cleared. Click any box to toggle; hold Alt and click to mark it not applicable.</span></div>
+    <div class="card-b" id="gateKey" style="display:grid;grid-template-columns:repeat(5,1fr);gap:9px"></div>
+  </div>
+  <div class="toolbar">
+    <select id="gArea" aria-label="Filter matrix by area"><option value="">All areas</option></select>
+    <select id="gSev" aria-label="Filter matrix by severity"><option value="">All severities</option></select>
+    <span class="count-note" id="gateCount"></span>
+  </div>
+  <div class="tablewrap matrix">
+    <table id="gateTable"><thead id="gateHead"></thead><tbody id="gateBody"></tbody></table>
+  </div>
+</section>
+
+<!-- ============================================ ORSVAI -->
+<section class="view" id="view-orsvai" role="tabpanel">
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-h"><h3>ORSVAI accountability</h3>
+      <span class="note">Every deliverable carries six named roles. Departmental ownership is not enough — gate 4 asks for a person.</span></div>
+    <div class="card-b"><div class="orsvai-key" id="orsvaiKey"></div></div>
+  </div>
+  <div class="tablewrap">
+    <table id="orsvaiTable">
+      <thead><tr><th>#</th><th>Deliverable</th><th>Owner</th><th>Responsible</th><th>Support</th><th>Verify</th><th>Approve</th><th>Inform</th></tr></thead>
+      <tbody id="orsvaiBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================================ EVIDENCE -->
+<section class="view" id="view-evidence" role="tabpanel">
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-b" style="font-size:13px;line-height:1.6;color:var(--muted)">
+      Nineteen documents close all 101 findings. The counts overlap on purpose — one engineered document
+      often answers findings raised under several different question codes. Produce these first.
+    </div>
+  </div>
+  <div class="grid g2" id="dlvGrid"></div>
+</section>
+
+<!-- ============================================ ROADMAP -->
+<section class="view" id="view-roadmap" role="tabpanel">
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-h"><h3>Delivery waves</h3><span class="note">Counted from 29 July 2026, the final day of the visit</span></div>
+    <div class="card-b"><div class="rail"><div class="rail-line"></div><div class="rail-track" id="rail"></div></div></div>
+  </div>
+  <div id="waveDetail"></div>
+</section>
+
+<!-- ============================================ CODES -->
+<section class="view" id="view-codes" role="tabpanel">
+  <div class="toolbar">
+    <div class="field"><input type="search" id="qCode" placeholder="Search standards…" aria-label="Search code library"></div>
+    <span class="count-note">28 standards cited across the three reports</span>
+  </div>
+  <div class="tablewrap">
+    <table><thead><tr><th style="width:150px">Standard</th><th style="width:230px">What it is</th><th>What it governs</th><th style="width:250px">Where it applies here</th></tr></thead>
+    <tbody id="codeBody"></tbody></table>
+  </div>
+  <div class="card" style="margin-top:14px"><div class="card-b" style="font-size:12.5px;line-height:1.6;color:var(--muted)">
+    <b style="color:var(--ink)">Why two BNBC editions appear together.</b> LRQA cites BNBC 2006 and BNBC 2020 for the same requirement
+    because a building is assessed against the code in force when it was built as well as the current edition.
+    Where the two differ, the more stringent applies.
+  </div></div>
+</section>
+
+<!-- ============================================ REPORTS -->
+<section class="view" id="view-reports" role="tabpanel">
+  <div class="grid g2" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-h"><h3>Export</h3><span class="note">Everything the team has entered on this board</span></div>
+      <div class="card-b" style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="btn primary" id="expJson">Download progress (JSON)</button>
+        <button class="btn" id="expCsv">Download register (CSV)</button>
+        <button class="btn" id="expPrint">Print status report</button>
+        <label class="btn" style="cursor:pointer">Restore from JSON
+          <input type="file" id="impJson" accept="application/json" hidden></label>
+        <button class="btn ghost" id="resetAll">Reset all progress</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Google Sheets sync</h3><span class="note">Optional — the board runs fully without it</span></div>
+      <div class="card-b">
+        <p style="margin:0 0 10px;font-size:12.5px;color:var(--muted);line-height:1.6">
+          Deploy <code>Code.gs</code> as an Apps Script web app, then paste its URL here. Progress will save to your
+          Sheet so everyone sees the same numbers. Without a URL, progress saves in this browser only.
+        </p>
+        <div class="fld"><label for="gsUrl">Apps Script web app URL</label>
+          <input type="url" id="gsUrl" placeholder="https://script.google.com/macros/s/…/exec"></div>
+        <div class="fld"><label for="gsKey">Shared key</label>
+          <input type="text" id="gsKey" placeholder="Must match SHARED_KEY in Code.gs"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn go" id="gsSave">Connect &amp; pull</button>
+          <button class="btn" id="gsPush">Push local progress</button>
+          <button class="btn ghost" id="gsOff">Disconnect</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><h3>Status report</h3><span class="note">Generated live — use Print for the fortnightly Steering Committee pack</span></div>
+    <div class="card-b" id="statusReport"></div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot"><div class="wrap"><div class="foot-in">
+  <div><b>Good &amp; Fast Packaging Co., Ltd</b> — CAP Board for LRQA-BD-NRP-353682. Severities, plans of action and deadlines are carried forward from the LRQA reports unchanged.</div>
+  <div>Credit Partner: <b>Industry Compliance &amp; Sustainability Platform</b> · Technology Partner: <b>guulba</b> — technology for better performance</div>
+</div></div></footer>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drTitle">
+  <div class="dr-h">
+    <div style="flex:1"><span class="dr-id" id="drId"></span><h3 id="drTitle"></h3></div>
+    <button class="dr-close" id="drClose" aria-label="Close">&times;</button>
+  </div>
+  <div class="dr-b" id="drBody"></div>
+  <div class="dr-f">
+    <button class="btn go" id="drSave">Save</button>
+    <button class="btn" id="drPrev">← Previous</button>
+    <button class="btn" id="drNext">Next →</button>
+    <span class="saved" id="drSaved"></span>
+  </div>
+</aside>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/store.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
