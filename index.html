@@ -397,6 +397,74 @@ details.acc .acc-b{padding:0 14px 14px;font-size:12.5px;line-height:1.6}
   *{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
 
+/* ==========================================================================
+   ACCESS CONTROL — view-only by default, editing behind a passcode
+   ========================================================================== */
+.lockbtn{
+  display:inline-flex;align-items:center;gap:6px;border:1px solid var(--rule);background:#fff;
+  border-radius:999px;padding:4px 11px 4px 9px;font-family:var(--mono);font-size:10.5px;
+  color:var(--muted);white-space:nowrap;margin-left:6px;transition:all .15s;
+}
+.lockbtn:hover{border-color:var(--navy-2);color:var(--navy-2)}
+.lockbtn .lk{
+  width:9px;height:11px;border:1.5px solid currentColor;border-radius:1px;position:relative;flex:0 0 auto;
+}
+.lockbtn .lk::before{
+  content:"";position:absolute;left:1px;right:1px;bottom:100%;height:5px;
+  border:1.5px solid currentColor;border-bottom:0;border-radius:3px 3px 0 0;
+}
+.lockbtn.open{border-color:var(--green-2);color:var(--green);background:var(--low-bg)}
+.lockbtn.open .lk::before{left:3px;right:-3px}
+
+/* every control marked data-edit is inert until editing is unlocked */
+body.viewonly [data-edit]{
+  opacity:.42;pointer-events:none;cursor:not-allowed;
+}
+body.viewonly .gbox{cursor:default}
+body.viewonly .gbox:hover::after{border-color:var(--rule);inset:6px}
+body.viewonly .cell:hover{transform:scale(1.42)}   /* browsing still works */
+
+.readonly{
+  background:var(--sheet-2);border:1px solid var(--rule-soft);border-radius:var(--r);
+  padding:8px 10px;font-size:12.5px;line-height:1.55;min-height:34px;color:var(--ink);
+  white-space:pre-wrap;
+}
+.readonly.blank{color:var(--muted-2);font-style:italic}
+.viewnote{
+  display:flex;align-items:center;gap:10px;background:var(--sheet-2);border:1px solid var(--rule);
+  border-left:3px solid var(--navy-2);border-radius:0 var(--r) var(--r) 0;padding:9px 12px;
+  font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:16px;
+}
+.viewnote b{color:var(--ink);font-weight:600}
+.viewnote button{
+  margin-left:auto;flex:0 0 auto;border:1px solid var(--navy);background:var(--navy);color:#fff;
+  border-radius:var(--r);padding:5px 11px;font-family:var(--cond);font-size:12px;
+}
+.viewnote button:hover{background:var(--navy-2);border-color:var(--navy-2)}
+
+.lockscrim{
+  position:fixed;inset:0;background:rgba(14,29,46,.5);opacity:0;pointer-events:none;
+  transition:opacity .2s;z-index:190;
+}
+.lockscrim.open{opacity:1;pointer-events:auto}
+.lockbox{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-46%) scale(.97);
+  width:min(400px,calc(100% - 32px));background:#fff;border:1px solid var(--rule);
+  border-top:3px solid var(--green-2);border-radius:var(--r);padding:22px 24px;z-index:200;
+  box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:all .22s cubic-bezier(.4,0,.2,1);
+}
+.lockbox.open{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+.lockbox h3{font-size:17px;margin-bottom:7px}
+.lockbox p{margin:0 0 15px;font-size:12.5px;color:var(--muted);line-height:1.55}
+.lockbox label{
+  display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:5px;
+}
+.lockbox input{width:100%;font-size:14px;padding:9px 11px;letter-spacing:.04em}
+.lockerr{color:var(--high);font-size:12px;margin:8px 0 0!important;font-weight:600}
+.lockrow{display:flex;gap:8px;margin-top:15px}
+.lockfoot{margin:14px 0 0!important;font-size:11px;color:var(--muted-2);line-height:1.5}
+
 </style>
 </head>
 <body>
@@ -433,6 +501,7 @@ details.acc .acc-b{padding:0 14px 14px;font-size:12.5px;line-height:1.6}
     <button class="tab" role="tab" data-view="reports">Reports</button>
     <span class="nav-spacer"></span>
     <button class="syncdot local" id="syncBtn" title="Where progress is being saved"><i></i><span id="syncTxt">Local</span></button>
+    <button class="lockbtn" id="lockBtn" title="Switch between viewing and editing"><span class="lk" aria-hidden="true"></span><span id="lockTxt">View only</span></button>
   </div>
 </nav>
 
@@ -596,26 +665,28 @@ details.acc .acc-b{padding:0 14px 14px;font-size:12.5px;line-height:1.6}
         <button class="btn primary" id="expJson">Download progress (JSON)</button>
         <button class="btn" id="expCsv">Download register (CSV)</button>
         <button class="btn" id="expPrint">Print status report</button>
-        <label class="btn" style="cursor:pointer">Restore from JSON
+        <label class="btn" data-edit style="cursor:pointer">Restore from JSON
           <input type="file" id="impJson" accept="application/json" hidden></label>
-        <button class="btn ghost" id="resetAll">Reset all progress</button>
+        <button class="btn ghost" data-edit id="resetAll">Reset all progress</button>
       </div>
     </div>
     <div class="card">
       <div class="card-h"><h3>Google Sheets sync</h3><span class="note">Optional — the board runs fully without it</span></div>
       <div class="card-b">
         <p style="margin:0 0 10px;font-size:12.5px;color:var(--muted);line-height:1.6">
-          Deploy <code>Code.gs</code> as an Apps Script web app, then paste its URL here. Progress will save to your
-          Sheet so everyone sees the same numbers. Without a URL, progress saves in this browser only.
+          Deploy <code>Code.gs</code> as an Apps Script web app and paste its URL here. Everyone then reads the same
+          numbers. Saving to the Sheet needs the editor passcode, which the script checks on its side — a viewer can
+          read the board but cannot change it.
         </p>
         <div class="fld"><label for="gsUrl">Apps Script web app URL</label>
-          <input type="url" id="gsUrl" placeholder="https://script.google.com/macros/s/…/exec"></div>
-        <div class="fld"><label for="gsKey">Shared key</label>
-          <input type="text" id="gsKey" placeholder="Must match SHARED_KEY in Code.gs"></div>
+          <input type="url" id="gsUrl" data-edit placeholder="https://script.google.com/macros/s/…/exec"></div>
+        <div class="fld"><label for="gsRead">Read key <span style="text-transform:none;letter-spacing:0">— must match READ_KEY in Code.gs</span></label>
+          <input type="text" id="gsRead" data-edit placeholder="gnf-cap-read"></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn go" id="gsSave">Connect &amp; pull</button>
-          <button class="btn" id="gsPush">Push local progress</button>
-          <button class="btn ghost" id="gsOff">Disconnect</button>
+          <button class="btn go" data-edit id="gsSave">Save &amp; pull</button>
+          <button class="btn" id="gsPull">Refresh from Sheet</button>
+          <button class="btn" data-edit id="gsPush">Push progress</button>
+          <button class="btn ghost" data-edit id="gsOff">Disconnect</button>
         </div>
       </div>
     </div>
@@ -649,8 +720,44 @@ details.acc .acc-b{padding:0 14px 14px;font-size:12.5px;line-height:1.6}
   </div>
 </aside>
 
+<div class="lockscrim" id="lockScrim"></div>
+<div class="lockbox" id="lockBox" role="dialog" aria-modal="true" aria-labelledby="lockTitle">
+  <h3 id="lockTitle">Unlock editing</h3>
+  <p>The board is open to everyone in read-only mode. Enter the editor passcode to record progress,
+     clear gates and assign owners.</p>
+  <label for="passIn">Editor passcode</label>
+  <input type="password" id="passIn" autocomplete="current-password" placeholder="Passcode">
+  <p class="lockerr" id="lockErr" hidden>That passcode is not right.</p>
+  <div class="lockrow">
+    <button class="btn go" id="lockGo">Unlock</button>
+    <button class="btn ghost" id="lockCancel">Cancel</button>
+  </div>
+  <p class="lockfoot">Editing locks itself again after 20 minutes of inactivity, and whenever this tab is closed.</p>
+</div>
+
 <div class="toast" id="toast"></div>
 
+<script>
+/* =====================================================================
+   ACCESS CONTROL
+   The board opens read-only for everyone. Editing needs the passcode.
+
+   To change the passcode, run:   python3 set_passcode.py
+   That prints a new hash — paste it over editHash below and, importantly,
+   set the SAME passcode as WRITE_KEY in Code.gs. The Apps Script checks it
+   server-side, which is what actually stops a viewer changing the Sheet.
+   ===================================================================== */
+window.CAP_CONFIG = {
+  /* SHA-256 of the editor passcode. Never put the passcode itself here —
+     this file is public. The starting passcode is in the README. */
+  editHash: 'aadaac1d4045a3f0db61820312b76b5484fa391c4d2d28a654cc0b2c94b78f45',
+  /* Read key — safe to publish. Must match READ_KEY in Code.gs.
+     Lets anyone load the Sheet; grants no write access whatsoever. */
+  readKey: 'gnf-cap-read',
+  /* Minutes of inactivity before editing locks itself again. */
+  idleLockMinutes: 20
+};
+</script>
 <script>
 /* ===== assets/js/data.js ===== */
 /* GNF CAP Board - seed data. Generated by build_web_data.py. Do not edit by hand. */
@@ -3283,8 +3390,9 @@ window.CAP_SEED = {
 
   var LS_PROGRESS = 'gnf_cap_progress_v1';
   var LS_CONFIG   = 'gnf_cap_config_v1';
+  var SS_WRITEKEY = 'gnf_cap_writekey';   // session only — never persisted to disk
 
-  var memory = { progress: null, config: null };   // fallback when storage is blocked
+  var memory = { progress: null, config: null, writeKey: null };
 
   function lsGet(key) {
     try { return w.localStorage.getItem(key); } catch (e) { return null; }
@@ -3292,13 +3400,20 @@ window.CAP_SEED = {
   function lsSet(key, val) {
     try { w.localStorage.setItem(key, val); return true; } catch (e) { return false; }
   }
+  function ssGet(key) { try { return w.sessionStorage.getItem(key); } catch (e) { return null; } }
+  function ssSet(key, v) { try { w.sessionStorage.setItem(key, v); } catch (e) {} }
+  function ssDel(key) { try { w.sessionStorage.removeItem(key); } catch (e) {} }
 
   var Store = {
     /* ---------------------------------------------------------- config */
     config: function () {
       if (memory.config) return memory.config;
       var raw = lsGet(LS_CONFIG);
-      memory.config = raw ? JSON.parse(raw) : { url: '', key: '' };
+      var cfg = raw ? JSON.parse(raw) : {};
+      memory.config = {
+        url: cfg.url || '',
+        readKey: cfg.readKey || (w.CAP_CONFIG && w.CAP_CONFIG.readKey) || ''
+      };
       return memory.config;
     },
     setConfig: function (cfg) {
@@ -3309,6 +3424,19 @@ window.CAP_SEED = {
       var c = this.config();
       return !!(c.url && c.url.indexOf('http') === 0);
     },
+
+    /* The write key is the editor passcode. It is held for this tab only and
+       is what the Apps Script checks before it will change the Sheet. */
+    writeKey: function () {
+      if (memory.writeKey !== null) return memory.writeKey;
+      memory.writeKey = ssGet(SS_WRITEKEY) || '';
+      return memory.writeKey;
+    },
+    setWriteKey: function (k) {
+      memory.writeKey = k || '';
+      if (k) ssSet(SS_WRITEKEY, k); else ssDel(SS_WRITEKEY);
+    },
+    canWrite: function () { return !!this.writeKey(); },
 
     /* ---------------------------------------------------------- progress */
     load: function () {
@@ -3370,8 +3498,10 @@ window.CAP_SEED = {
     push: function (progress) {
       var c = this.config();
       if (!c.url) return Promise.resolve(false);
+      var wk = this.writeKey();
+      if (!wk) return Promise.resolve(false);   // read-only session: never writes
       var body = new w.FormData();
-      body.append('key', c.key || '');
+      body.append('key', wk);
       body.append('action', 'save');
       body.append('payload', JSON.stringify(progress));
       return w.fetch(c.url, { method: 'POST', mode: 'no-cors', body: body })
@@ -3390,7 +3520,7 @@ window.CAP_SEED = {
         w[cb] = function (data) { cleanup(); resolve(data); };
         s.onerror = function () { cleanup(); reject(new Error('Could not reach the web app. Check the URL and that access is set to "Anyone".')); };
         s.src = c.url + (c.url.indexOf('?') > -1 ? '&' : '?') +
-                'action=load&callback=' + cb + '&key=' + encodeURIComponent(c.key || '');
+                'action=load&callback=' + cb + '&key=' + encodeURIComponent(c.readKey || '');
         document.body.appendChild(s);
       });
     }
@@ -3449,6 +3579,111 @@ function fmt(iso) {
   var d = new Date(iso + 'T00:00:00');
   return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
+/* ------------------------------------------------------------------ access
+   The board is read-only until someone enters the editor passcode. The lock
+   here controls the interface; the Apps Script checks the same passcode on
+   its side, which is what actually protects the shared Sheet. */
+var CFG = window.CAP_CONFIG || {};
+var EDITABLE = false;
+var idleTimer = null;
+
+/* Compact SHA-256 so the check works on file:// as well as https. */
+function sha256(msg) {
+  function rr(n, x) { return (x >>> n) | (x << (32 - n)); }
+  var K = [], H = [], p = 2, i = 0, j, f;
+  while (i < 64) {
+    for (f = 1, j = 2; j * j <= p; j++) if (p % j === 0) { f = 0; break; }
+    if (f) {
+      if (i < 8) H[i] = (Math.pow(p, 0.5) % 1 * 4294967296) | 0;
+      K[i] = (Math.pow(p, 1 / 3) % 1 * 4294967296) | 0;
+      i++;
+    }
+    p++;
+  }
+  var b = [], utf = unescape(encodeURIComponent(msg));
+  for (i = 0; i < utf.length; i++) b.push(utf.charCodeAt(i));
+  var bitLen = b.length * 8;
+  b.push(0x80);
+  while (b.length % 64 !== 56) b.push(0);
+  for (i = 7; i >= 0; i--) b.push((i === 4 ? Math.floor(bitLen / 4294967296) : bitLen >>> (i * 8)) & 0xff);
+  var w = [], a, c, d, e, g, h, t1, t2, s0, s1, ch, maj;
+  for (i = 0; i < b.length; i += 64) {
+    for (j = 0; j < 16; j++) w[j] = (b[i + j * 4] << 24) | (b[i + j * 4 + 1] << 16) | (b[i + j * 4 + 2] << 8) | b[i + j * 4 + 3];
+    for (j = 16; j < 64; j++) {
+      s0 = rr(7, w[j - 15]) ^ rr(18, w[j - 15]) ^ (w[j - 15] >>> 3);
+      s1 = rr(17, w[j - 2]) ^ rr(19, w[j - 2]) ^ (w[j - 2] >>> 10);
+      w[j] = (w[j - 16] + s0 + w[j - 7] + s1) | 0;
+    }
+    a = H[0]; c = H[1]; d = H[2]; e = H[3]; g = H[4]; h = H[5]; t1 = H[6]; t2 = H[7];
+    var vv = [a, c, d, e, g, h, t1, t2];
+    for (j = 0; j < 64; j++) {
+      s1 = rr(6, vv[4]) ^ rr(11, vv[4]) ^ rr(25, vv[4]);
+      ch = (vv[4] & vv[5]) ^ (~vv[4] & vv[6]);
+      var T1 = (vv[7] + s1 + ch + K[j] + w[j]) | 0;
+      s0 = rr(2, vv[0]) ^ rr(13, vv[0]) ^ rr(22, vv[0]);
+      maj = (vv[0] & vv[1]) ^ (vv[0] & vv[2]) ^ (vv[1] & vv[2]);
+      var T2 = (s0 + maj) | 0;
+      vv[7] = vv[6]; vv[6] = vv[5]; vv[5] = vv[4]; vv[4] = (vv[3] + T1) | 0;
+      vv[3] = vv[2]; vv[2] = vv[1]; vv[1] = vv[0]; vv[0] = (T1 + T2) | 0;
+    }
+    for (j = 0; j < 8; j++) H[j] = (H[j] + vv[j]) | 0;
+  }
+  return H.map(function (x) { return ('00000000' + (x >>> 0).toString(16)).slice(-8); }).join('');
+}
+
+function setMode(on) {
+  EDITABLE = !!on;
+  document.body.classList.toggle('viewonly', !EDITABLE);
+  var b = $('#lockBtn');
+  b.className = 'lockbtn' + (EDITABLE ? ' open' : '');
+  $('#lockTxt').textContent = EDITABLE ? 'Editing' : 'View only';
+  b.title = EDITABLE ? 'Lock the board back to view only' : 'Enter the passcode to edit';
+  if (EDITABLE) armIdle(); else clearTimeout(idleTimer);
+  if (document.getElementById('orsvaiBody')) paintOrsvai();
+}
+
+function armIdle() {
+  clearTimeout(idleTimer);
+  var mins = Number(CFG.idleLockMinutes) || 20;
+  idleTimer = setTimeout(function () {
+    lock();
+    toast('Editing locked after ' + mins + ' minutes idle');
+  }, mins * 60000);
+}
+
+function unlock(pass) {
+  if (!CFG.editHash || sha256(pass) !== String(CFG.editHash).toLowerCase()) return false;
+  S.setWriteKey(pass);
+  setMode(true);
+  return true;
+}
+
+function lock() {
+  S.setWriteKey('');
+  setMode(false);
+  closeDrawer();
+  refresh();
+}
+
+function needEdit() {
+  if (EDITABLE) return true;
+  openLock();
+  return false;
+}
+
+function openLock() {
+  $('#lockErr').hidden = true;
+  $('#passIn').value = '';
+  $('#lockScrim').classList.add('open');
+  $('#lockBox').classList.add('open');
+  setTimeout(function () { $('#passIn').focus(); }, 60);
+}
+
+function closeLock() {
+  $('#lockScrim').classList.remove('open');
+  $('#lockBox').classList.remove('open');
+}
+
 function rec(id) { return S.get(id); }
 function isClosed(id) { return rec(id).status === 'Closed - Verified'; }
 function isDeferred(id) { return rec(id).status === 'Deferred - Justified'; }
@@ -3505,6 +3740,7 @@ function paintHeader(s) {
   var live = S.connected();
   $('#syncBtn').className = 'syncdot ' + (live ? 'live' : 'local');
   $('#syncTxt').textContent = live ? 'Sheet connected' : 'This browser';
+  var ro = $('#drSave'); if (ro) ro.hidden = !EDITABLE;
 }
 
 /* ------------------------------------------------------------------ overview */
@@ -3704,7 +3940,16 @@ function openFinding(id) {
           '<span class="gtog"><button data-gate="' + g.id + '" data-val="Y" aria-pressed="' + (v === 'Y') + '">Y</button>' +
           '<button class="na" data-gate="' + g.id + '" data-val="NA" aria-pressed="' + (v === 'NA') + '">N/A</button></span></div>';
       }).join('') + '</div></div>' +
-    '<div class="blk"><div class="blk-t">CAP entry</div>' +
+    (EDITABLE ? capEntryForm(f, r) : capEntryRead(r));
+
+  if (!EDITABLE) {
+    $('#drBody').insertAdjacentHTML('afterbegin',
+      '<div class="viewnote"><span><b>View only.</b> Unlock editing to record progress on this finding.</span>' +
+      '<button type="button" data-unlock>Unlock</button></div>');
+  }
+
+  function capEntryForm(f, r) {
+    return '<div class="blk"><div class="blk-t">CAP entry</div>' +
       '<div class="fld"><label for="iStatus">Status</label><select id="iStatus">' +
         D.statuses.map(function (s) { return '<option' + (r.status === s ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') +
       '</select></div>' +
@@ -3717,8 +3962,24 @@ function openFinding(id) {
       '</div>' +
       '<div class="fld"><label for="iRemarks">Remarks</label><textarea id="iRemarks" rows="2">' + esc(r.remarks) + '</textarea></div>' +
     '</div>';
+  }
+
+  function capEntryRead(r) {
+    function box(label, val) {
+      var empty = !val;
+      return '<div class="fld"><label>' + label + '</label><div class="readonly' + (empty ? ' blank' : '') +
+        '">' + esc(empty ? 'Not recorded yet' : val) + '</div></div>';
+    }
+    return '<div class="blk"><div class="blk-t">CAP entry</div>' +
+      box('Status', r.status) + box('Root cause', r.rootCause) +
+      box('Corrective action', r.corrective) + box('Preventive action', r.preventive) +
+      '<div class="metagrid"><div style="border:0;padding:0">' + box('Action owner', r.owner) +
+      '</div><div style="border:0;padding:0">' + box('Budget (BDT)', r.budget) + '</div></div>' +
+      box('Remarks', r.remarks) + '</div>';
+  }
 
   $$('#drBody .gtog button').forEach(function (b) {
+    if (!EDITABLE) { b.disabled = true; return; }
     b.addEventListener('click', function () {
       var g = b.dataset.gate, v = b.dataset.val, cur = rec(id).gates[g];
       var p = S.load();
@@ -3728,6 +3989,7 @@ function openFinding(id) {
     });
   });
 
+  $('#drSave').hidden = !EDITABLE;
   $('#scrim').classList.add('open');
   $('#drawer').classList.add('open');
   $('#drSaved').textContent = '';
@@ -3735,7 +3997,7 @@ function openFinding(id) {
 }
 
 function saveDrawer() {
-  if (!current) return;
+  if (!current || !needEdit()) return;
   var p = S.load(), r = p.findings[current] || S.blank();
   r.status = $('#iStatus').value;
   r.rootCause = $('#iRoot').value;
@@ -3815,8 +4077,10 @@ function paintOrsvai() {
       '<div style="margin-top:4px"><span class="tag std">' + esc(d.standard.split(';')[0]) + '</span></div></td>' +
       D.orsvai.map(function (o) {
         return '<td><input type="text" data-role="' + d.no + '|' + o.code + '" value="' + esc(roles[o.code] || '') +
-          '" placeholder="' + (o.code === 'R' ? esc(d.preparedBy.split('(')[0].trim()) : 'Name') +
-          '" style="width:100%;min-width:112px;font-size:11.5px;padding:5px 7px"></td>';
+          '"' + (EDITABLE ? '' : ' readonly tabindex="-1"') +
+          ' placeholder="' + (EDITABLE ? (o.code === 'R' ? esc(d.preparedBy.split('(')[0].trim()) : 'Name') : '—') +
+          '" style="width:100%;min-width:112px;font-size:11.5px;padding:5px 7px' +
+          (EDITABLE ? '' : ';background:var(--sheet-2);color:var(--muted);cursor:default') + '"></td>';
       }).join('') + '</tr>';
   }).join('');
 }
@@ -3952,11 +4216,35 @@ function show(view) {
 function wire() {
   $$('.tab').forEach(function (t) { t.addEventListener('click', function () { show(t.dataset.view); }); });
 
+  /* lock UI */
+  $('#lockBtn').addEventListener('click', function () { if (EDITABLE) lock(); else openLock(); });
+  $('#lockCancel').addEventListener('click', closeLock);
+  $('#lockScrim').addEventListener('click', closeLock);
+  $('#lockGo').addEventListener('click', function () {
+    if (unlock($('#passIn').value)) {
+      closeLock(); paintOrsvai(); refresh();
+      if (current) openFinding(current);
+      toast('Editing unlocked');
+    } else {
+      $('#lockErr').hidden = false;
+      $('#passIn').select();
+    }
+  });
+  $('#passIn').addEventListener('keydown', function (e) {
+    $('#lockErr').hidden = true;
+    if (e.key === 'Enter') $('#lockGo').click();
+  });
+  ['click', 'keydown'].forEach(function (ev) {
+    document.addEventListener(ev, function () { if (EDITABLE) armIdle(); }, true);
+  });
+
   document.addEventListener('click', function (e) {
     var o = e.target.closest('[data-open]');
     if (o) { openFinding(o.dataset.open); return; }
+    if (e.target.closest('[data-unlock]')) { openLock(); return; }
     var mx = e.target.closest('[data-mx]');
     if (mx) {
+      if (!needEdit()) return;
       var parts = mx.dataset.mx.split('|'), id = parts[0], g = parts[1];
       var p = S.load(), cur = rec(id).gates[g];
       var next = e.altKey ? (cur === 'NA' ? undefined : 'NA') : (cur === 'Y' ? undefined : 'Y');
@@ -3975,6 +4263,7 @@ function wire() {
   document.addEventListener('change', function (e) {
     var rl = e.target.closest('[data-role]');
     if (rl) {
+      if (!EDITABLE) { paintOrsvai(); return; }
       var parts = rl.dataset.role.split('|');
       var p = S.load();
       if (!p.roles[parts[0]]) p.roles[parts[0]] = {};
@@ -4016,6 +4305,7 @@ function wire() {
   $('#expPrint').addEventListener('click', function () { show('reports'); setTimeout(function () { window.print(); }, 260); });
   $('#impJson').addEventListener('change', function (e) {
     var f = e.target.files[0]; if (!f) return;
+    if (!needEdit()) { e.target.value = ''; return; }
     var fr = new FileReader();
     fr.onload = function () {
       try { S.replace(JSON.parse(fr.result)); refresh(); toast('Progress restored'); }
@@ -4024,26 +4314,39 @@ function wire() {
     fr.readAsText(f); e.target.value = '';
   });
   $('#resetAll').addEventListener('click', function () {
+    if (!needEdit()) return;
     if (!confirm('Clear every status, gate and note entered on this board? Download a backup first if you need one.')) return;
     S.clear(); paintOrsvai(); refresh(); toast('Board reset');
   });
 
   var cfg = S.config();
-  $('#gsUrl').value = cfg.url || ''; $('#gsKey').value = cfg.key || '';
-  $('#gsSave').addEventListener('click', function () {
-    S.setConfig({ url: $('#gsUrl').value.trim(), key: $('#gsKey').value.trim() });
-    toast('Connecting…');
-    S.pull().then(function (data) {
-      if (data && data.ok && data.progress) { S.replace(data.progress); paintOrsvai(); refresh(); toast('Pulled from the Sheet'); }
-      else { refresh(); toast(data && data.error ? data.error : 'Connected, but the Sheet has no saved progress yet.'); }
+  $('#gsUrl').value = cfg.url || ''; $('#gsRead').value = cfg.readKey || '';
+  function pullNow(msg) {
+    toast(msg || 'Refreshing…');
+    return S.pull().then(function (data) {
+      if (data && data.ok && data.progress) { S.replace(data.progress); paintOrsvai(); refresh(); toast('Loaded from the Sheet'); }
+      else { refresh(); toast(data && data.error ? data.error : 'Connected, but the Sheet has no progress saved yet.'); }
     }).catch(function (err) { refresh(); toast(err.message); });
+  }
+  $('#gsSave').addEventListener('click', function () {
+    if (!needEdit()) return;
+    S.setConfig({ url: $('#gsUrl').value.trim(), readKey: $('#gsRead').value.trim() });
+    pullNow('Connecting…');
+  });
+  $('#gsPull').addEventListener('click', function () {
+    if (!S.connected()) { toast('No Sheet is connected yet.'); return; }
+    pullNow();
   });
   $('#gsPush').addEventListener('click', function () {
+    if (!needEdit()) return;
     if (!S.connected()) { toast('Add the web app URL first.'); return; }
-    S.push(S.load()).then(function () { toast('Pushed to the Sheet'); });
+    S.push(S.load()).then(function (ok) {
+      toast(ok ? 'Pushed to the Sheet' : 'The Sheet refused the write — check the passcode matches WRITE_KEY in Code.gs.');
+    });
   });
   $('#gsOff').addEventListener('click', function () {
-    S.setConfig({ url: '', key: '' }); $('#gsUrl').value = ''; $('#gsKey').value = '';
+    if (!needEdit()) return;
+    S.setConfig({ url: '', readKey: '' }); $('#gsUrl').value = ''; $('#gsRead').value = '';
     refresh(); toast('Disconnected — progress now saves in this browser only');
   });
   $('#syncBtn').addEventListener('click', function () { show('reports'); });
@@ -4051,7 +4354,9 @@ function wire() {
 
 /* ------------------------------------------------------------------ boot */
 function init() {
-  buildFilters(); paintGateKey(); paintOrsvai(); paintCodes(''); wire(); refresh();
+  buildFilters(); paintGateKey(); paintOrsvai(); paintCodes(''); wire();
+  setMode(S.canWrite());     /* an unlocked tab stays unlocked across reloads */
+  refresh();
   if (S.connected()) {
     S.pull().then(function (data) {
       if (data && data.ok && data.progress) { S.replace(data.progress); paintOrsvai(); refresh(); }
